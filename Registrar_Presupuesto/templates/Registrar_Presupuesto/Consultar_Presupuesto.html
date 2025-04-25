@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Consultar Presupuesto{% endblock %}
+
+{% block content %}
+<div class="container w-100" >
+  <h3 class="mb-4">🧾 Consultar Presupuesto</h3>
+  <div class="row">
+    <!-- Columna Izquierda -->
+    <div class="col-md-4">
+      <form method="get" action="{% url 'consultar_presupuesto' %}">
+        <!-- Filtros -->
+        <div class="mb-3">
+          <label for="presupuesto">Presupuesto</label>
+          <select name="presupuesto_id" class="form-control" onchange="this.form.submit()">
+            <option value="">Seleccione Presupuesto</option>
+            {% for p in presupuestos %}
+              <option value="{{ p.id }}" {% if p.id|stringformat:"s" == request.GET.presupuesto_id %}selected{% endif %}>{{ p.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="categoria">Categoría</label>
+          <select name="categoria" class="form-control" onchange="this.form.submit()">
+            <option value="">Todas las Categorías</option>
+            {% for c in categorias %}
+              <option value="{{ c.id }}" {% if c.id|stringformat:"s" == request.GET.categoria %}selected{% endif %}>{{ c.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="responsable">Responsable</label>
+          <select name="responsable" class="form-control" onchange="this.form.submit()">
+            <option value="">Todos los Responsables</option>
+            {% for r in responsables %}
+              <option value="{{ r.id }}" {% if r.id|stringformat:"s" == request.GET.responsable %}selected{% endif %}>{{ r.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+
+      {% if ingresos_resumen %}
+        <div class="mt-3">
+          <h5>💼 Ingresos y Saldos por Responsable</h5>
+          <table class="table table-sm table-striped table-bordered small">
+            <thead class="table-info">
+              <tr>
+                <th>👤 Responsable</th>
+                <th>💰 Ingresos</th>
+                <th>💸 Gastos</th>
+                <th>💼 Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in ingresos_resumen %}
+                <tr>
+                  <td>{{ item.responsable }}</td>
+                  <td>${{ item.ingresos|floatformat:0|intcomma }}</td>
+                  <td>${{ item.gastos|floatformat:0|intcomma }}</td>
+                  <td>${{ item.saldo|floatformat:0|intcomma }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if saldos_bancarios %}
+        <div class="mt-3">
+          <h5>🏦 Saldos Actuales en Cuentas</h5>
+          <table class="table table-sm table-hover table-bordered small">
+            <thead class="table-secondary">
+              <tr>
+                <th>Responsable</th>
+                <th>Banco</th>
+                <th>Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for saldo in saldos_bancarios %}
+                <tr>
+                  <td>{{ saldo.responsable }}</td>
+                  <td>{{ saldo.banco }}</td>
+                  <td>${{ saldo.saldo|floatformat:0|intcomma }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if total_presupuesto or total_gastos %}
+        <div class="alert alert-info mt-4">
+          <h5>📊 Resumen</h5>
+          <ul class="list-unstyled">
+            <li><strong>Total Presupuesto:</strong> ${{ total_presupuesto|floatformat:0|intcomma }}</li>
+            <li><strong>Total Gastos:</strong> ${{ total_gastos|floatformat:0|intcomma }}</li>
+            <li><strong>Cumplimiento:</strong> {{ porcentaje_cumplimiento|floatformat:2 }}%</li>
+          </ul>
+
+          {% if sobreejecutado %}
+            <div class="alert alert-danger mt-2">🚨 ¡Presupuesto sobreejecutado!</div>
+          {% endif %}
+
+          <canvas id="barraCumplimiento" height="100"></canvas>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Columna Derecha -->
+    <div class="col-md-8">
+      {% if items_presupuesto %}
+        <h5>Resumen del Presupuesto</h5>
+        <table class="table table-bordered table-striped small">
+          <thead class="table-primary">
+            <tr>
+              <th>📁 Categoría</th>
+              <th>👤 Responsable</th>
+              <th>$ Presupuesto</th>
+              <th>$ Gasto</th>
+              <th>$ Diferencia</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items_presupuesto %}
+              <tr class="{% if item.diferencia > 0 %}positivo{% elif item.resaltado %}resaltado{% endif %}">
+                <td>{{ item.categoria_nombre }}</td>
+                <td>{{ item.responsable_nombre }}</td>
+                <td>${{ item.valor|floatformat:0|intcomma }}</td>
+                <td>${{ item.valor_gasto|floatformat:0|intcomma }}</td>
+                <td>${{ item.diferencia|floatformat:0|intcomma }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-muted">No hay datos disponibles para la selección actual.</p>
+      {% endif %}
+
+      {% if gastos_detalle %}
+        <h5 class="mt-5">Detalle de Transacciones</h5>
+        <table class="table table-sm table-hover table-bordered small">
+          <thead class="table-success">
+            <tr>
+              <th>📅 Fecha</th>
+              <th>🧾 Concepto</th>
+              <th>👤 Responsable</th>
+              <th>$ Valor</th>
+              <th>📝 Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for gasto in gastos_detalle %}
+              <tr>
+                <td>{{ gasto.fecha }}</td>
+                <td>{{ gasto.concepto }}</td>
+                <td>{{ gasto.responsable }}</td>
+                <td>${{ gasto.valor|floatformat:0|intcomma }}</td>
+                <td>{{ gasto.observaciones }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('barraCumplimiento').getContext('2d');
+  const porcentaje = {{ porcentaje_cumplimiento|floatformat:2 }};
+  const ejecutado = porcentaje > 100 ? 100 : porcentaje;
+  const restante = porcentaje > 100 ? 0 : 100 - porcentaje;
+  const colorEjecutado = porcentaje <= 100 ? '#198754' : '#dc3545';
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Cumplimiento'],
+      datasets: [
+        {
+          label: 'Ejecutado (%)',
+          data: [ejecutado],
+          backgroundColor: colorEjecutado
+        },
+        {
+          label: 'No ejecutado (%)',
+          data: [restante],
+          backgroundColor: '#dee2e6'
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: context => `${context.dataset.label}: ${context.raw}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          max: 100,
+          title: { display: true, text: 'Porcentaje' }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

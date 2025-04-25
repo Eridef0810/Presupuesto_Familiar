@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Ingresar Items Presupuesto{% endblock %}
+
+{% block content %}
+
+      <div class="container w-75">
+        <div class="row">
+          <div class="col">
+            <div class="card shadow p-4">
+              <h4 class="text-center text-primary mb-4">Ingresar Items Presupuesto</h4>
+      
+              {% if presupuesto_seleccionado %}
+              <form id="detalleForm" method="post" action="{% url 'ingresar_item_presupuesto' %}?presupuesto_id={{ presupuesto_seleccionado.id }}" onsubmit="return confirmarEnvio(event)">
+          {% else %}
+              <form id="detalleForm" method="get" action="{% url 'ingresar_item_presupuesto' %}">
+          {% endif %}
+                {% csrf_token %}
+                
+                <div class="row">
+                  <!-- PRESUPUESTO Y CATEGORÍA -->
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label for="presupuesto" class="form-label">Presupuesto:</label>
+                        <select name="presupuesto_id" id="presupuesto" class="form-select" required onchange="this.form.submit()">
+                          <option value="">Seleccione Presupuesto</option>
+                          {% for presupuesto in presupuestos %}
+                            <option value="{{ presupuesto.id }}" {% if presupuesto_seleccionado and presupuesto.id == presupuesto_seleccionado.id %}selected{% endif %}>
+                              {{ presupuesto.nombre }}
+                            </option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+      
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label for="categoriaSelect" class="form-label">Categoría:</label>
+                        <select id="categoriaSelect" name="categoria_id" class="form-select" required>
+                          <option value="">Seleccione una categoría</option>
+                          {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+      
+                  <div class="row">
+                    <!-- CONCEPTO -->
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label for="conceptoSelect" class="form-label">Concepto:</label>
+                        <select id="conceptoSelect" name="concepto_id" class="form-select" required>
+                          <option value="">Seleccione un concepto</option>
+                        </select>
+                      </div>
+                    </div>
+      
+                    <!-- RESPONSABLE -->
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label for="Responsable" class="form-label">Responsable:</label>
+                        <select name="responsable_id" id="Responsable" class="form-select" required>
+                          <option value="">Seleccione un Responsable</option>
+                          {% for responsable in responsables %}
+                            <option value="{{ responsable.id }}">{{ responsable.nombre }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+      
+                  <!-- MONTO -->
+                  <div class="mb-3">
+                    <label for="Valor" class="form-label fw-semibold">$ Valor Presupuesto</label>
+                    <input type="number" id="Valor" name="valor" class="form-control" placeholder="Ingrese el valor" required min="0" step="0.01">
+                  </div>
+      
+                  <!-- OBSERVACIONES -->
+                  <div class="mb-3">
+                    <label for="Obs" class="form-label">Observaciones</label>
+                    <textarea name="observaciones" id="Obs" class="form-control" rows="4" placeholder="Ingrese cualquier comentario"></textarea>
+                  </div>
+      
+                  <!-- BOTONES -->
+                  <div class="mt-4 text-end">
+                    <button type="reset" class="btn btn-danger">Limpiar</button>
+                    <button type="submit" class="btn btn-primary">Agregar al Presupuesto</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+                                
+                          <!-- SCRIPT: CARGAR CONCEPTOS Y CONFIRMACIÓN -->
+                          <script>
+                            // Cargar conceptos
+                            document.getElementById('categoriaSelect').addEventListener('change', function () {
+                              const categoriaId = this.value;
+                              const conceptoSelect = document.getElementById('conceptoSelect');
+                              conceptoSelect.innerHTML = '<option>Cargando...</option>';
+                          
+                              if (categoriaId) {
+                                fetch(`/conceptos/${categoriaId}/`)
+                                  .then(response => {
+                                    if (!response.ok) throw new Error('Error en la respuesta del servidor');
+                                    return response.json();
+                                  })
+                                  .then(data => {
+                                    conceptoSelect.innerHTML = '<option value="">Seleccione un concepto</option>';
+                                    if (Array.isArray(data) && data.length > 0) {
+                                      data.forEach(concepto => {
+                                        const option = document.createElement('option');
+                                        option.value = concepto.id;
+                                        option.textContent = concepto.nombre;
+                                        conceptoSelect.appendChild(option);
+                                      });
+                                    } else {
+                                      conceptoSelect.innerHTML = '<option>No hay conceptos disponibles</option>';
+                                    }
+                                  })
+                                  .catch(error => {
+                                    console.error('❌ Error al cargar conceptos:', error);
+                                    conceptoSelect.innerHTML = '<option>Error al cargar</option>';
+                                  });
+                              } else {
+                                conceptoSelect.innerHTML = '<option value="">Seleccione un concepto</option>';
+                              }
+                            });
+                          
+                            // Confirmación al enviar
+                            function confirmarEnvio(event) {
+                              event.preventDefault(); // Previene el envío inmediato
+                              const form = document.getElementById('detalleForm');
+                          
+                              // Enviar usando fetch para evitar recarga de página
+                              const formData = new FormData(form);
+                              fetch(form.action, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                  'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                                }
+                              }).then(response => {
+                                if (response.ok) {
+                                  Swal.fire({
+                                    title: '¿Deseas ingresar otro ítem?',
+                                    icon: 'question',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Sí, agregar otro',
+                                    cancelButtonText: 'No, terminar'
+                                  }).then((result) => {
+                                    if (result.isConfirmed) {
+                                      form.reset(); // Limpia el formulario
+                                    } else {
+                                      window.location.href = "{% url 'pagina_inicial' %}";   // Cambia a donde quieras ir al terminar
+                                    }
+                                  });
+                                } else {
+                                  Swal.fire('Error', 'Ocurrió un problema al guardar el ítem.', 'error');
+                                }
+                              });
+                          
+                              return false; // evita el submit tradicional
+                            }
+                          </script>
+                          
+                          <!-- Agrega SweetAlert2 -->
+                          <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                          
+                            
+                              </script>
+                              <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                                <div id="toastConfirmacion" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                                    <div class="d-flex">
+                                        <div class="toast-body">
+                                            Ítem agregado exitosamente al presupuesto.
+                                        </div>
+                                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                              
+
+   
+
+                           
+                        </div>
+                    </div>
+                </div>
+            </div>
+                   
+        </div>
+        {% endblock %}

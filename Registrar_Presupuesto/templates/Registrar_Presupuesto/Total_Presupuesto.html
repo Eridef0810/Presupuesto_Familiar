@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Crear Presupuesto{% endblock %}
+
+{% block content %}
+
+      <div class="container mt-5">
+          <h2 class="mb-4">Presupuesto Cargado</h2>
+      
+          {% if items_presupuesto %}
+          
+          <div class="table-responsive mt-4 shadow rounded">
+                      <table id="carritoPresupuesto" class="table table-bordered table-striped table-hover table-sm">
+                           <thead class="bg-primary text-white table-primary">
+                <tr class="text-center">
+                  <th><i class="bi bi-tags"></i> Categoría</th>
+                  <th><i class="bi bi-card-list"></i> Concepto</th>
+                  <th><i class="bi bi-person-circle"></i> Responsable</th>
+                  <th><i class="bi bi-currency-dollar"></i> Valor</th>
+                  <th><i class="bi bi-chat-left-text"></i> Observaciones</th>
+                  <th><i class="bi bi-trash"></i> Acción</th>
+                </tr>
+  
+            </thead>
+            <tbody>
+              {% for item in items_presupuesto %}
+              <tr>
+                <td>{{ item.categoria_nombre }}</td>
+                <td>{{ item.nombre_concepto }}</td>
+                <td contenteditable="true">{{ item.responsable_nombre }}</td>
+                <td contenteditable="true">{{ item.valor }}</td>
+                <td contenteditable="true">{{ item.observaciones }}</td>
+                <td><button class="btn btn-danger btn-sm eliminar-fila"><i class="bi bi-trash"></i>Eliminar</button></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+        </table>
+    </div>
+          <script>
+            $(document).ready(function () {
+              const table = $('#carritoPresupuesto').DataTable();
+          
+              // Eliminar fila
+              $('#carritoPresupuesto tbody').on('click', '.eliminar-fila', function () {
+                table.row($(this).parents('tr')).remove().draw();
+              });
+          
+              // Escuchar cambios para actualizar en backend si deseas
+              $('#carritoPresupuesto tbody').on('blur', '[contenteditable=true]', function () {
+                const cell = table.cell(this);
+                const nuevoValor = $(this).text().trim();
+          
+                // Aquí puedes hacer un fetch o Ajax para actualizar la sesión si quieres.
+                console.log('Celda actualizada:', nuevoValor);
+              });
+            });
+          </script>
+          
+      
+              <div class="text-center mt-3">
+                <h5>Total del Presupuesto: <span class="text-success">${{ total_presupuesto|floatformat:2 }}</span></h5>
+            </div>
+      
+              <form action="{% url 'vaciar_carrito' %}" method="post" class="mt-3">
+                  {% csrf_token %}
+                  <div class="d-flex justify-content-between">
+                  <button type="submit" class="btn btn-warning"><i class="bi bi-trash"></i>Vaciar Presupuesto</button>
+                  <!-- Botón que lanza el modal -->
+                 
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#confirmarGuardarModal">
+                <i class="bi bi-save"></i> Guardar Presupuesto
+                </button>
+               </div>
+              </form>
+          {% else %}
+              <p class="text-muted">No hay ítems cargados en el presupuesto.</p>
+          {% endif %}
+      </div>
+      
+
+  <!-- Modal -->
+  <form method="POST" action="{% url 'guardar_presupuesto' %}">
+    {% csrf_token %}
+    <div class="modal fade" id="confirmarGuardarModal" tabindex="-1" aria-labelledby="confirmarGuardarModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg rounded-3">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title" id="confirmarGuardarModalLabel">
+              <i class="bi bi-exclamation-triangle-fill"></i> Confirmar guardado
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            ¿Estás seguro de que deseas guardar este presupuesto? Una vez guardado, no podrás modificar los ítems.
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check-circle"></i> Sí, guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+{% endblock %}

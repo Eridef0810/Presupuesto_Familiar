@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Crear Presupuesto{% endblock %}
+
+{% block content %}
+
+        
+          <!-- 📌 Sección del Formulario -->
+          <div class="container w-75">
+              <div class="row">
+                  <div class="col">
+                      <div class="card shadow p-4">
+                  <h4 class="text-center text-primary mb-4">Registro de Gastos</h4>
+                  {% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+                  <form id="GuardarGastoForm" action="{% url 'gastos' %}" method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                      <div class="col-md-6">              
+                        <div class="mb-3">
+                        <label for="presupuesto" class="form-label">Presupuesto:</label>
+                        <select name="presupuesto" id="presupuesto" class="form-select" required>
+                          <option value="" selected>Seleccione Presupuesto</option>
+                          {% for presupuesto in presupuestos %}
+                            <option value="{{ presupuesto.id }}">{{ presupuesto.nombre }}</option>
+                          {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+        
+        <div class="col-md-6">              
+          <div class="mb-3">
+          <label for="fecha" class="form-label">Fecha:</label>
+          <input type="date" id="fecha" class="form-control" name="fecha" required />
+      </div>
+    </div>
+  </div>
+                <div class="row">
+                <!-- CATEGORÍA -->
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="categoriaSelect" class="form-label">Categoría:</label>
+                    <select id="categoriaSelect" name="categoria" class="form-select" required>
+                      <option value="">Seleccione una categoría</option>
+                    {% for categoria in categorias %}
+                      <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                    {% endfor %}
+                    </select>
+
+                  </div>
+                </div>
+            
+                <!-- CONCEPTO -->
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="conceptoSelect" class="form-label">Concepto:</label>
+                    <select id="conceptoSelect" name="concepto_id" class="form-select" required>
+                      <option value="">Seleccione un concepto</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <script>
+                document.getElementById('categoriaSelect').addEventListener('change', function () {
+                  const categoriaId = this.value;
+                  const conceptoSelect = document.getElementById('conceptoSelect');
+                
+                  conceptoSelect.innerHTML = '<option>Cargando...</option>';
+                
+                  if (categoriaId) {
+                    fetch(`/conceptos/${categoriaId}/`)
+                      .then(response => {
+                        if (!response.ok) {
+                          throw new Error('Error en la respuesta del servidor');
+                        }
+                        return response.json();
+                      })
+                      .then(data => {
+                        console.log("✅ Datos recibidos:", data);  // VER EN CONSOLA
+                        conceptoSelect.innerHTML = '<option value="">Seleccione un concepto</option>';
+                        if (Array.isArray(data) && data.length > 0) {
+                          data.forEach(concepto => {
+                            const option = document.createElement('option');
+                            option.value = concepto.id;
+                            option.textContent = concepto.nombre;
+                            conceptoSelect.appendChild(option);
+                          });
+                        } else {
+                          const option = document.createElement('option');
+                          option.textContent = "No hay conceptos disponibles";
+                          conceptoSelect.appendChild(option);
+                        }
+                      })
+                      .catch(error => {
+                        console.error('❌ Error al cargar conceptos:', error);
+                        conceptoSelect.innerHTML = '<option>Error al cargar</option>';
+                      });
+                  } else {
+                    conceptoSelect.innerHTML = '<option value="">Seleccione un concepto</option>';
+                  }
+                });
+                </script>
+                <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="Responsable" class="form-label">Responsable:</label>
+                    <select name="responsable_id" id="Responsable" class="form-select" required>
+                      <option value="" selected>Seleccione un Responsable</option>
+                      {% for responsable in responsables %}
+                        <option value="{{ responsable.id }}">{{ responsable.nombre }}</option>
+                      {% endfor %}
+                    </select>
+
+                  </div>
+            </div>
+            <div class="col-md-6">
+                  <div class="mb-3">
+                      <label for="Bancos" class="form-label">Banco:</label>
+                      <select name="banco_id" id="Bancos" class="form-select" required>
+                        <option value="" selected>Seleccione un Banco</option>
+                        {% for banco in bancos %}
+                          <option value="{{ banco.id }}">{{ banco.nombre }}</option>
+                        {% endfor %}
+                      </select>
+                      
+                      
+                  </div>
+                </div>
+              </div>
+              
+                  
+                  <div class="mb-3">
+                      <label for="Valor" class="form-label fw-semibold">$ Valor</label>
+                      <input type="text" id="Valor" name="valor" class="form-control" placeholder="Ingrese el valor" required />
+                  </div>
+      
+                 
+      
+                  <div class="mb-3">
+                      <label for="Obs" class="form-label">Observaciones</label>
+                      <textarea name="observaciones" id="Obs" class="form-control" rows="3" placeholder="Ingrese comentarios Adicionales"></textarea>
+                  </div>
+      
+                  <div class="d-flex justify-content-between">
+                      <button type="reset" class="btn btn-danger">Limpiar</button>
+                      <button type="submit" id="btnGuardarGasto" class="btn btn-success">Guardar</button>
+                  </div>
+              </form>
+          </div>
+      </div>
+  </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('GuardarGastoForm');
+        const btnGuardarSaldo = document.getElementById('btnGuardarGasto');
+
+        btnGuardarSaldo.addEventListener('click', function(event) {
+            event.preventDefault(); // Evitar el envío tradicional del formulario
+
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest', // Indicar que es una petición AJAX
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'), // Incluir el token CSRF
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Gasto guardado exitosamente.',
+                        text: '¿Desea agregar otro gasto?',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, agregar otro',
+                        cancelButtonText: 'No, terminar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.reset(); // Limpiar el formulario para agregar otro gasto
+                        } else {
+                            // Redirigir a la página de consultar presupuesto (ajustar según sea necesario)
+                            window.location.href = "{% url 'pagina_inicial' %}";
+                        }
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Ocurrió un error al guardar el gasto.', 'error');
+            });
+        });
+    });
+</script>
+{% endblock %}

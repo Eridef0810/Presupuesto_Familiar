@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Registrar Ingresos{% endblock %}
+
+{% block content %}
+            
+             <!-- 📌 Sección del Formulario -->
+             <div class="container w-75">
+              <div class="row">
+                  <div class="col">
+                      <div class="card shadow p-4">
+                          <h4 class="text-center text-primary mb-4">Registrar Ingresos</h4>
+                          {% if messages %}
+                          <div class="container mt-3">
+                          {% for message in messages %}
+                          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                          <form id="guardarIngresoForm" method="POST" action="{% url 'ingresos' %}">
+                            {% csrf_token %}
+
+                            <div class="row">
+                              <div class="col-md-6">              
+                                <div class="mb-3">
+                                <label for="presupuesto" class="form-label">Presupuesto</label>
+                                <select name="presupuesto" id="presupuesto" class="form-select" required>
+                                  <option value="" selected>Seleccione Presupuesto</option>
+                                  {% for presupuesto in presupuestos %}
+                                    <option value="{{ presupuesto.id }}">{{ presupuesto.nombre }}</option>
+                                  {% endfor %}
+                              </select>
+                            </div>
+                          </div>
+                
+                <div class="col-md-6">              
+                  <div class="mb-3">
+                  <label for="fecha" class="form-label">Fecha:</label>
+                  <input type="date" id="fecha" class="form-control" name="fecha" required />
+              </div>
+            </div>
+          </div>
+            <div class="row">
+            <div class="col-md-6">  
+              <div class="mb-3">
+                <label for="periodo" class="form-label">Periodo:</label>
+                  <select id="periodo" name="periodo" class="form-select" required>
+                      <option value="1">Primera Quincena</option>
+                      <option value="2">Segunda Quincena</option>
+                  </select>
+              </div>
+            </div>
+            <div class="col-md-6">  
+            <div class="mb-3">
+              <label for="responsable" class="form-label">Selecciona un Responsable:</label>
+              <select name="responsable_id" id="responsable" class="form-select" required>
+                  <option value="" selected>Seleccione un Responsable</option>
+                  {% for responsable in responsables %}
+                      <option value="{{ responsable.id }}">{{ responsable.nombre }}</option>
+                  {% endfor %}
+              </select>
+          </div>
+          </div>
+        </div>
+          <div class="row"> 
+          <div class="col-md-6">  
+              <div class="mb-3">
+                  <label for="bancos" class="form-label">Selecciona un Banco:</label>
+                  <select name="banco_id" id="bancos" class="form-select" required>
+                      <option value="" selected>Seleccione un Banco</option>
+                      {% for banco in bancos %}
+                          <option value="{{ banco.id }}">{{ banco.nombre }}</option>
+                      {% endfor %}
+                  </select>
+                </div>      
+              </div>
+            <div class="col-md-6">  
+              <div class="mb-3">
+              <label for="valor" class="form-label fw-semibold">$ Valor Ingreso</label>
+              <input type="text" id="valor" name="valor" class="form-control" placeholder="Ingrese el valor" required>
+              </div>
+             </div>
+            </div>
+            <div class="mb-3">
+              <label for="observaciones" class="form-label">Observaciones</label>
+              <textarea name="observaciones" id="Obs" class="form-control" rows="4" placeholder="Ingrese un comentario"></textarea>
+            </div>
+            <div class="d-flex justify-content-between">
+             <button type="reset" class="btn btn-danger">Limpiar</button>
+             <button type="submit" id="btnGuardarIngreso" class="btn btn-success">Cargar</button>
+            </div>
+          </div>
+                       
+  </form>
+                      </div>
+                  </div>
+              </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+              const form = document.getElementById('guardarIngresoForm');
+              const btnGuardarSaldo = document.getElementById('btnGuardarIngreso');
+      
+              btnGuardarSaldo.addEventListener('click', function(event) {
+                  event.preventDefault(); // Evitar el envío tradicional del formulario
+      
+                  const formData = new FormData(form);
+      
+                  fetch(form.action, {
+                      method: 'POST',
+                      body: formData,
+                      headers: {
+                          'X-Requested-With': 'XMLHttpRequest', // Indicar que es una petición AJAX
+                          'X-CSRFToken': formData.get('csrfmiddlewaretoken'), // Incluir el token CSRF
+                      },
+                  })
+                  .then(response => response.json())
+                  .then(data => {
+                      if (data.success) {
+                          Swal.fire({
+                              title: 'Ingreso guardado exitosamente.',
+                              text: '¿Desea agregar otro Ingreso?',
+                              icon: 'success',
+                              showCancelButton: true,
+                              confirmButtonText: 'Sí, agregar otro',
+                              cancelButtonText: 'No, terminar'
+                          }).then((result) => {
+                              if (result.isConfirmed) {
+                                  form.reset(); // Limpiar el formulario para agregar otro Ingreso
+                              } else {
+                                  // Redirigir a la página de consultar presupuesto (ajustar según sea necesario)
+                                  window.location.href = "{% url 'pagina_inicial' %}";
+                              }
+                          });
+                      } else {
+                          Swal.fire('Error', data.message, 'error');
+                      }
+                  })
+                  .catch(error => {
+                      console.error('Error:', error);
+                      Swal.fire('Error', 'Ocurrió un error al guardar el Ingreso.', 'error');
+                  });
+              });
+          });
+      </script>
+  
+      {% endblock %}

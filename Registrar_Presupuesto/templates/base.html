@@ -1,0 +1,171 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Gestor de Presupuesto Familiar{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Estilos propios -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'Registrar_Presupuesto/css/Estilos.css' %}">
+
+    <!-- Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="57x57" href="{% static 'favicon/apple-icon-57x57.png' %}">
+    <link rel="apple-touch-icon" sizes="60x60" href="{% static 'favicon/apple-icon-60x60.png' %}">
+    <link rel="apple-touch-icon" sizes="72x72" href="{% static 'favicon/android-icon-72x72.png' %}">
+    <link rel="apple-touch-icon" sizes="76x76" href="{% static 'favicon/apple-icon-76x76.png' %}">
+    <link rel="apple-touch-icon" sizes="114x114" href="{% static 'favicon/android-icon-114x114.png' %}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{% static 'favicon/apple-icon-120x120.png' %}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{% static 'favicon/android-icon-144x144.png' %}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{% static 'favicon/apple-icon-152x152.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon/apple-icon-180x180.png' %}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'favicon/android-icon-192x192.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{% static 'favicon/favicon-96x96.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'favicon/manifest.json' %}">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="{% static 'favicon/ms-icon-144x144.png' %}">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div class="p-3 mb-2 text-white custom-cian">Gestor de Presupuesto Familiar</div>
+
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div id="sidebarMenu" class="p-3 w-25">
+            <h5><i class="bi bi-list"></i> Menú Principal</h5>
+            <div class="accordion" id="menuAccordion">
+                <div class="accordion-item border-0">
+                    <a href="{% url 'pagina_inicial' %}" class="btn w-100 text-start mb-2">
+                        <i class="bi bi-house-door-fill me-2"></i>Página Principal
+                    </a>
+                </div>
+
+                <!-- Presupuesto -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingPresupuesto">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePresupuesto">
+                            <i class="bi bi-wallet2 me-2"></i>Presupuesto
+                        </button>
+                    </h2>
+                    <div id="collapsePresupuesto" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><a class="text-decoration-none" href="{% url 'crear_presupuesto' %}"><i class="bi bi-pencil-square me-2"></i>Crear Presupuesto</a></li>
+                                <li class="list-group-item"><a class="text-decoration-none" href="{% url 'ingresar_presupuesto' %}"><i class="bi bi-pencil-square me-2"></i>Registrar Presupuesto</a></li>
+                                <li class="list-group-item"><a class="text-decoration-none" href="{% url 'consultar_presupuesto' %}"><i class="bi bi-eye-fill me-2"></i>Ver Presupuesto</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gastos -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingGastos">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGastos">
+                            <i class="bi bi-cash-coin me-2"></i>Gastos
+                        </button>
+                    </h2>
+                    <div id="collapseGastos" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><a class="text-decoration-none" href="{% url 'gastos' %}"><i class="bi bi-pencil-square me-2"></i>Registrar Gastos</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ingresos -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingIngresos">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseIngresos">
+                            <i class="bi bi-cash-coin me-2"></i>Ingresos
+                        </button>
+                    </h2>
+                    <div id="collapseIngresos" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><a class="text-decoration-none" href="{% url 'ingresos' %}"><i class="bi bi-pencil-square me-2"></i>Registrar Ingresos</a></li>
+                                <li class="list-group-item"><a class="text-decoration-none" href="{% url 'ingresar_saldos' %}"><i class="bi bi-pencil-square me-2"></i>Registrar Saldo en Cuentas</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metas -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingMetas">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMetas">
+                            <i class="bi bi-bar-chart-line-fill"></i> Metas
+                        </button>
+                    </h2>
+                    <div id="collapseMetas" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><a class="text-decoration-none" href="{% url 'definir_metas' %}"><i class="bi bi-bar-chart-line-fill"></i>Definir Metas</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div id="collapseMetas" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><a class="text-decoration-none" href="{% url 'ver_avance_metas' %}"><i class="bi bi-bar-chart-line-fill"></i>Ver Avance Metas</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bancos -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingbanco">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBancos">
+                            <i class="bi bi-bank"></i> Bancos
+                        </button>
+                    </h2>
+                    <div id="collapseBancos" class="accordion-collapse collapse" data-bs-parent="#menuAccordion">
+                        <div class="accordion-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><a class="text-decoration-none" href="https://www.davivienda.com/" target="_blank"><i class="bi bi-cash-coin"></i> Davivienda</a></li>
+                                <li class="list-group-item"><a class="text-decoration-none" href="https://sucursalpersonas.transaccionesbancolombia.com/mua/USER" target="_blank"><i class="bi bi-cash-coin"></i> Bancolombia</a></li>
+                                <li class="list-group-item"><a class="text-decoration-none" href="https://transacciones.nequi.com/bdigital/login.jsp" target="_blank"><i class="bi bi-cash-coin"></i> Nequi</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Salir -->
+                <div class="accordion-item border-0">
+                    <a href="{% url 'login' %}" class="btn w-100 text-start">
+                        <i class="bi bi-box-arrow-right me-2"></i>Salir
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido dinámico -->
+        <div class="flex-grow-1 p-4">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

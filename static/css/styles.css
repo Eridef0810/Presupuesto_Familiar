@@ -1,0 +1,105 @@
+#IndexBody {
+    background-image: url("../img/logo.gif");
+    background-size: cover; /* Ajusta el GIF para cubrir toda la pantalla */
+    background-position: center; /* Centra el GIF */
+    background-repeat: no-repeat; /* Evita que se repita */
+    background-attachment: fixed; /* Fija el fondo al hacer scroll */
+    }
+    .custom-cian {
+        background-color: #00bcd4; /* o el color que uses */
+    }
+    .header {
+        text-align: center;  /* Centra el texto */
+        font-size: 24px;  /* Aumenta el tamaño de la fuente */
+        font-weight: bold;  /* Hace el texto más grueso */
+        padding: 20px;  /* Agrega espacio alrededor */
+        background-color: #f8f9fa; /* Color de fondo opcional */
+        border-bottom: 2px solid #ccc; /* Línea divisoria opcional */
+    }
+
+    .footer {
+        background-color: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        border-top: 2px solid #ccc;
+    }
+
+    .footer-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .footer-nav a {
+        text-decoration: none;
+        color: #007bff;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px; /* Espacio entre el icono y el texto */
+        margin-bottom: 10px;
+    }
+
+    .footer-nav a:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+
+    .footer-nav i {
+        font-size: 50px;
+    }
+
+    .info-section {
+        text-align: center;
+        margin: 20px auto;
+        max-width: 600px;
+        font-size: 18px;
+        line-height: 1.6;
+    }
+
+    .info-text {
+        margin-bottom: 15px;
+    }
+
+    .highlight {
+        color: #28a745; /* Verde éxito de Bootstrap */
+        font-weight: bold;
+    }
+
+    th {
+        text-align: center; /* Centra el texto horizontalmente */
+        vertical-align: middle; /* Centra el texto verticalmente (opcional) */
+    }
+
+    .dropdown-submenu {
+        position: relative;
+      }
+    .dropdown-submenu .dropdown-menu {
+        top: 0;
+        left: 100%;
+        margin-left: 0.1rem;
+        display: none;
+        position: absolute;
+      }
+      
+      .dropdown-submenu:hover .dropdown-menu {
+        display: block;
+      }
+      
+      /* Responsive para móviles: convertir submenú a lista simple */
+      @media (max-width: 768px) {
+        .dropdown-submenu > .dropdown-menu {
+          position: static;
+          display: block;
+          margin-left: 1rem;
+        }
+      }
+
+.positivo {
+        background-color: #d4edda; /* verde claro */
+    }
+.resaltado {
+        background-color: #f8d7da; /* rojo claro */
+    }
+    

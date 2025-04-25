@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Crear Presupuesto{% endblock %}
+
+{% block content %}
+
+          <div class="main-container w-75 p-3">
+                    <header class="header">Bienvenidos al Presupuesto y Ejecución de la <strong></strong></header>
+          
+          <div class="info-text">
+            <h2 class="text-center">Presupuesto Familiar</h2>
+            <p class="info-text">
+              Este es un proyecto personal que tiene como objetivo ayudar a las familias a llevar un control de sus gastos y presupuestos mensuales.
+            </p>  
+          
+          
+          </div>
+          
+        </div>
+       
+
+        {% if presupuesto_guardado %}
+        <div class="modal fade" id="presupuestoGuardadoModal" tabindex="-1" aria-labelledby="presupuestoGuardadoModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow rounded-3">
+              <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="presupuestoGuardadoModalLabel">
+                  <i class="bi bi-check-circle-fill"></i> Presupuesto guardado
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                ¡El presupuesto ha sido guardado exitosamente!
+              </div>
+              <div class="modal-footer">
+                <a href="{% url 'pagina_inicial' %}" class="btn btn-secondary">Finalizar</a>
+                <a href="{% url 'crear_presupuesto' %}" class="btn btn-primary">Crear nuevo presupuesto</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% if presupuesto_guardado %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var modal = new bootstrap.Modal(document.getElementById('presupuestoGuardadoModal'));
+    modal.show();
+  });
+</script>
+{% endif %}
+        
+      
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

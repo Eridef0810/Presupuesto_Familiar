@@ -1,0 +1,10 @@
+runtime: custom
+env: standard
+entrypoint: gunicorn --bind :$PORT <nombre_de_tu_proyecto>.wsgi
+
+handlers:
+- url: /static
+  static_dir: staticfiles/
+
+- url: /.*
+  script: auto
