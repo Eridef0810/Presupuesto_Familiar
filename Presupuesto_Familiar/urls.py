@@ -49,11 +49,16 @@ urlpatterns = [
     path('avance_metas/', views.ver_avance_metas, name='ver_avance_metas'),
     path('pagina-inicial/', views.pagina_inicial, name='pagina_inicial'),
     path('detalle_presupuesto/', views.ver_detalle_presupuesto, name='detalle_presupuesto'),
+    path('obtener-eventos/<int:presupuesto_id>/', views.obtener_eventos_presupuesto, name='obtener_eventos'),
+    path('guardar_gasto/', views.guardar_gasto, name='guardar_gasto'),
+
 
     # API AJAX
     path('conceptos/<int:categoria_id>/', views.obtener_conceptos, name='obtener_conceptos'),
     path('api/conceptos/<int:categoria_id>/', views.obtener_conceptos, name='api_conceptos'),
-    path('meta/<int:meta_id>/avance/', views.ver_avance_metas, name='ver_avance_metas'),  # <- También corregido aquí
+    path('meta/<int:meta_id>/avance/', views.ver_avance_metas, name='ver_avance_metas'),  
+    path('obtener_detalle_presupuesto/<int:detalle_id>/', views.obtener_detalle_presupuesto, name='obtener_detalle_presupuesto'),
+
 ]
 
 

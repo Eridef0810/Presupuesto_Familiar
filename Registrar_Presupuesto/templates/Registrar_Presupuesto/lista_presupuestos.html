@@ -105,13 +105,23 @@
                                 }
                               });
                               </script>
-                            
-                          
-                            <!-- MONTO -->
-                            <div class="mb-3">
-                              <label for="Valor" class="form-label fw-semibold">$ Valor Presupuesto</label>
-                              <input type="number" id="Valor" name="valor" class="form-control" placeholder="Ingrese el valor" required min="0" step="0.01">
-                            </div>
+                                                      
+                              <div class="row">
+                                <!-- MONTO -->
+                                <div class="col-md-6">
+                                <div class="mb-3">
+                                  <label for="Valor" class="form-label fw-semibold">$ Valor Presupuesto</label>
+                                  <input type="number" id="Valor" name="valor" class="form-control" placeholder="Ingrese el valor" required min="0" step="0.01">
+                                </div>
+                              </div>
+              
+                              <div class="col-md-6">
+                                <div class="mb-3">
+                                  <label for="fecha_pago" class="form-label">Fecha de Pago</label>
+                                  <input type="date" id="date" name="date" class="form-control" placeholder="Ingrese una Fecha" required>
+                                </div>
+                              </div>
+                            </div>                              
                            
                                                         
                           
@@ -132,43 +142,48 @@
                           </form>
                             <script>
                               document.getElementById('agregarCarrito').addEventListener('click', function () {
-                                  const conceptoId = document.getElementById('conceptoSelect').value;
-                                  const valor = document.getElementById('Valor').value;
-                                  const responsableId = document.getElementById('Responsable').value;
-                                  const observaciones = document.getElementById('Obs').value;
-                                  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                              
-                                  fetch("{% url 'agregar_al_carrito' %}", {
-                                      method: 'POST',
-                                      headers: {
-                                          'Content-Type': 'application/x-www-form-urlencoded',
-                                          'X-CSRFToken': csrfToken
-                                      },
-                                      body: new URLSearchParams({
-                                          concepto_id: conceptoId,
-                                          valor: valor,
-                                          responsable_id: responsableId,
-                                          observaciones: observaciones
-                                      })
-                                  })
-                                  .then(response => response.json())
-                                  .then(data => {
-                                      if (data.status === 'ok') {
-                                          const toastEl = document.getElementById('toastConfirmacion');
-                                          const toast = new bootstrap.Toast(toastEl);
-                                          toast.show();
-                              
-                                          setTimeout(() => {
-                                              location.reload();
-                                          }, 2000);
-                                      } else {
-                                          alert('Error al agregar al carrito');
-                                      }
-                                  })
-                                  .catch(error => {
-                                      console.error('Error al enviar los datos:', error);
-                                  });
-                              });
+                                const conceptoId = document.getElementById('conceptoSelect').value;
+                                const valor = document.getElementById('Valor').value;
+                                const fechaPago = document.getElementById('date').value;  // Fecha seleccionada
+                                const responsableId = document.getElementById('Responsable').value;
+                                const observaciones = document.getElementById('Obs').value;
+                                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                            
+                                console.log("Fecha de pago seleccionada:", fechaPago);  // Verificar que la fecha es correcta
+                            
+                                fetch("{% url 'agregar_al_carrito' %}", {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded',
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: new URLSearchParams({
+                                        concepto_id: conceptoId,
+                                        valor: valor,
+                                        responsable_id: responsableId,
+                                        observaciones: observaciones,
+                                        fecha_pago: fechaPago  // Enviar la fecha seleccionada
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.status === 'ok') {
+                                        const toastEl = document.getElementById('toastConfirmacion');
+                                        const toast = new bootstrap.Toast(toastEl);
+                                        toast.show();
+                            
+                                        setTimeout(() => {
+                                            location.reload();
+                                        }, 2000);
+                                    } else {
+                                        alert('Error al agregar al carrito');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error al enviar los datos:', error);
+                                });
+                            });
+                            
                               </script>
                               <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
                                 <div id="toastConfirmacion" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">

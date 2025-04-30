@@ -18,6 +18,7 @@
                   <th><i class="bi bi-card-list"></i> Concepto</th>
                   <th><i class="bi bi-person-circle"></i> Responsable</th>
                   <th><i class="bi bi-currency-dollar"></i> Valor</th>
+                  <th><i class="bi bi-calendar"></i> Fecha de Pago</th>
                   <th><i class="bi bi-chat-left-text"></i> Observaciones</th>
                   <th><i class="bi bi-trash"></i> Acción</th>
                 </tr>
@@ -30,6 +31,7 @@
                 <td>{{ item.nombre_concepto }}</td>
                 <td contenteditable="true">{{ item.responsable_nombre }}</td>
                 <td contenteditable="true">{{ item.valor }}</td>
+                <td contenteditable="true">{{ item.fecha_pago }}</td>
                 <td contenteditable="true">{{ item.observaciones }}</td>
                 <td><button class="btn btn-danger btn-sm eliminar-fila"><i class="bi bi-trash"></i>Eliminar</button></td>
               </tr>

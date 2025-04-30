@@ -1,55 +1,207 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load humanize %}
 
 {% block title %}Crear Presupuesto{% endblock %}
 
 {% block content %}
+    <div class="main-container w-75">
+        <header class="header">Bienvenidos a la Planeación y Ejecución del Presupuesto Familiar</header>
+        <div class="container mt-4">
+            <h4 class="card-header bg-success border-primary text-white mb-3 text-center shadow">🧾 Resumen de Presupuestos Semanales</h4>
 
-          <div class="main-container w-75 p-3">
-                    <header class="header">Bienvenidos al Presupuesto y Ejecución de la <strong></strong></header>
+            {% if presupuesto_guardado %}
+                <div class="alert alert-success">
+                    El presupuesto ha sido guardado correctamente.
+                </div>
+            {% endif %}
+
+            {% for semana, datos in semanas.items %}
+                <div class="card mb-3 shadow">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">{{ semana }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for item in datos.items %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card">
+                                        <div class="card-header bg-success text-white">
+                                            <strong>{{ item.concepto }}</strong>
+                                        </div>
+                                        <div class="card-body">
+                                           <p><small class="text-muted">Responsable: {{ item.responsable }}</small></p>
+                                            <p class="mb-1">
+                                                <strong>Monto:</strong> ${{ item.monto|floatformat:0|intcomma }}
+                                            </p>
+                                            {% if item.ejecutado %}
+                                                <p><span class="badge bg-secondary">Ejecutado</span></p>
+                                            {% endif %}
+                                            <a href="javascript:void(0);" class="btn btn-info btn-sm"
+                                               data-bs-toggle="modal" data-bs-target="#gastoModal"
+                                               data-presupuesto-id="{{ item.presupuesto_id }}"
+                                               data-presupuesto-nombre="{{ item.presupuesto }}" 
+                                               data-categoria-id="{{ item.categoria_id }}"
+                                               data-categoria-nombre="{{ item.categoria }}"
+                                               data-concepto-id="{{ item.concepto_id }}"
+                                               data-concepto-nombre="{{ item.concepto }}"
+                                               data-responsable-id="{{ item.responsable_id }}"
+                                               data-responsable-nombre="{{ item.responsable }}"
+                                               data-monto="{{ item.monto }}"
+                                               onclick="cargarDetallesPresupuesto(this)">
+                                                Registrar Gasto
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <div class="alert alert-warning col-12">No hay conceptos cargados para esta semana.</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-3 text-end">
+                            <strong>Total Semana:</strong>
+                            <span class="text-primary fw-bold">
+                                ${{ datos.total|floatformat:0|intcomma }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="alert alert-warning">No hay datos de presupuesto disponibles.</div>
+            {% endfor %}
+        </div>
+<div class="modal fade" id="gastoModal" tabindex="-1" aria-labelledby="gastoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow rounded-3">
+          <div class="modal-header bg-info text-white">
+              <h5 class="modal-title" id="gastoModalLabel">Registrar Gasto</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <form id="GuardarGastoForm" action="{% url 'guardar_gasto' %}" method="post">
+              {% csrf_token %}
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label for="presupuesto" class="form-label">Presupuesto:</label>
+                          <input type="text" id="presupuesto" class="form-control" readonly/>
+                          <input type="hidden" id="presupuestoId" name="presupuestoId">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label for="fecha" class="form-label">Fecha del Gasto:</label>
+                          <input type="date" id="fecha" class="form-control" name="fecha" required />
+                      </div>
+                  </div>
+              </div>
           
-          <div class="info-text">
-            <h2 class="text-center">Presupuesto Familiar</h2>
-            <p class="info-text">
-              Este es un proyecto personal que tiene como objetivo ayudar a las familias a llevar un control de sus gastos y presupuestos mensuales.
-            </p>  
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label for="categoriaSelect" class="form-label">Categoría:</label>
+                          <input type="text" id="categoriaSelect" class="form-control" readonly />
+                          <input type="hidden" id="categoriaId" name="categoriaId"> </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label for="conceptoSelect" class="form-label">Concepto:</label>
+                          <input type="text" id="conceptoSelect" class="form-control" readonly />
+                          <input type="hidden" id="conceptoId" name="conceptoId"> </div>
+                  </div>
+              </div>
           
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label for="Responsable" class="form-label">Responsable:</label>
+                          <input type="text" id="Responsable" class="form-control" readonly />
+                          <input type="hidden" name="Responsable" id="ResponsableHidden">
+
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="mb-3">
+                          <label for="Bancos" class="form-label">Banco:</label>
+                          <select name="banco_id" id="Bancos" class="form-select" required>
+                              <option value="">Seleccione un Banco</option>
+                              {% for banco in bancos %}
+                                  <option value="{{ banco.id }}">{{ banco.nombre }}</option>
+                              {% endfor %}
+                          </select>
+                      </div>
+                  </div>
+              </div>
+          
+              <div class="mb-3">
+                  <label for="Valor" class="form-label fw-semibold">$ Valor del Gasto</label>
+                  <input type="number" id="Valor" name="valor" class="form-control" placeholder="Ingrese el valor del gasto" required step="any" />
+
+              </div>
+          
+              <div class="mb-3">
+                  <label for="Obs" class="form-label">Observaciones</label>
+                  <textarea name="observaciones" id="Obs" class="form-control" rows="3" placeholder="Ingrese comentarios Adicionales"></textarea>
+              </div>
+          
+              <div class="d-flex justify-content-between">
+                  <button type="reset" class="btn btn-danger">Limpiar</button>
+                  <button type="submit" id="btnGuardarGasto" class="btn btn-success">Guardar Gasto</button>
+              </div>
+          </form>
           
           </div>
-          
-        </div>
-       
+      </div>
+  </div>
+</div>
 
-        {% if presupuesto_guardado %}
-        <div class="modal fade" id="presupuestoGuardadoModal" tabindex="-1" aria-labelledby="presupuestoGuardadoModalLabel" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow rounded-3">
-              <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="presupuestoGuardadoModalLabel">
-                  <i class="bi bi-check-circle-fill"></i> Presupuesto guardado
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-              </div>
-              <div class="modal-body">
-                ¡El presupuesto ha sido guardado exitosamente!
-              </div>
-              <div class="modal-footer">
-                <a href="{% url 'pagina_inicial' %}" class="btn btn-secondary">Finalizar</a>
-                <a href="{% url 'crear_presupuesto' %}" class="btn btn-primary">Crear nuevo presupuesto</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-        {% if presupuesto_guardado %}
+    
+
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    var modal = new bootstrap.Modal(document.getElementById('presupuestoGuardadoModal'));
-    modal.show();
-  });
+  window.cargarDetallesPresupuesto = function(button) {
+      const presupuestoId = button.getAttribute("data-presupuesto-id");
+      const presupuestoNombre = button.getAttribute("data-presupuesto-nombre");
+      const categoriaId = button.getAttribute("data-categoria-id");
+      const categoriaNombre = button.getAttribute("data-categoria-nombre");
+      const conceptoId = button.getAttribute("data-concepto-id");
+      const conceptoNombre = button.getAttribute("data-concepto-nombre");
+      const responsableId = button.getAttribute("data-responsable-id");
+      const responsable = button.getAttribute("data-responsable-nombre");
+      const valor = button.getAttribute("data-monto");
+
+      // Asignar valores al formulario
+      document.getElementById("presupuestoId").value = presupuestoId;
+      document.getElementById("presupuesto").value = presupuestoNombre;
+      document.getElementById("categoriaId").value = categoriaId;
+      document.getElementById("categoriaSelect").value = categoriaNombre;
+      document.getElementById("conceptoId").value = conceptoId;
+      document.getElementById("conceptoSelect").value = conceptoNombre;
+      document.getElementById("Responsable").value = responsable;
+      document.getElementById("ResponsableHidden").value = responsableId;
+
+      if (valor) {
+          document.getElementById("Valor").value = valor;
+      } else {
+          document.getElementById("Valor").value = "";
+      }
+
+      // Mostrar en consola para depuración
+      console.log("📦 Datos cargados al modal:");
+      console.log("Presupuesto ID:", presupuestoId);
+      console.log("Presupuesto Nombre:", presupuestoNombre);
+      console.log("Categoría ID:", categoriaId);
+      console.log("Categoría Nombre:", categoriaNombre);
+      console.log("Concepto ID:", conceptoId);
+      console.log("Concepto Nombre:", conceptoNombre);
+      console.log("Responsable ID:", responsableId);
+      console.log("Responsable:", responsable);
+      console.log("Valor:", valor);
+  };
+
 </script>
-{% endif %}
-        
-      
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</div>
+</body>
+
+
+    
 {% endblock %}

@@ -1,10 +1,14 @@
+import calendar
 import datetime
+from decimal import Decimal, InvalidOperation
 from pyexpat.errors import messages
+from urllib import request
+from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from .models import Bancos, Categoria, DetallePresupuesto, Presupuesto
-from django.http import JsonResponse
+from django.http import HttpResponseServerError, JsonResponse
 from Registrar_Presupuesto.models import Presupuesto, Categoria, Conceptos, Responsables, Bancos,Gasto, Ingresos, Saldos, Metas
 from django.contrib import messages
 from django.shortcuts import get_object_or_404
@@ -18,7 +22,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout  # Corrige esta importación
-
+from datetime import datetime, date
 
 
 @login_required
@@ -86,8 +90,23 @@ def capturar_cabecera_presupuesto(request):
 @login_required
 def pagina_inicial(request):
     mostrar_modal = request.session.pop('presupuesto_guardado', False)
+
+    # Optimizar la consulta con select_related (asegúrate de usar el nombre de campo correcto)
+    presupuesto_items = DetallePresupuesto.objects.select_related('presupuesto', 'Categoria', 'responsable').all()
+
+    # Agrupar por semanas utilizando los ítems ya cargados
+    semanas = agrupar_por_semanas(presupuesto_items) or {}
+
+    categorias = Categoria.objects.all()
+    responsables = Responsables.objects.all()
+    bancos = Bancos.objects.filter(estado=True)
+
     return render(request, 'Registrar_Presupuesto/Pagina_Inicial.html', {
-        'presupuesto_guardado': mostrar_modal
+        'presupuesto_guardado': mostrar_modal,
+        'semanas': semanas,
+        'categorias': categorias,
+        'responsables': responsables,
+        'bancos': bancos,
     })
 
 
@@ -101,7 +120,7 @@ def guardar_presupuesto(request):
             return redirect('pagina_inicial')
 
         try:
-            mes_convertido = datetime.datetime.strptime(cabecera['mes'], "%Y-%m").date().replace(day=1)
+            mes_convertido = datetime.strptime(cabecera['mes'], "%Y-%m").date().replace(day=1)
         except ValueError:
             return redirect('pagina_inicial')
 
@@ -112,7 +131,7 @@ def guardar_presupuesto(request):
             mes=mes_convertido,
             fecha_inicio=cabecera['fecha_inicio'],
             fecha_fin=cabecera['fecha_fin'],
-            total_presupuesto=total_presupuesto  # ✅ este es el nombre correcto del campo
+            total_presupuesto=total_presupuesto
         )
 
         for item in items:
@@ -121,14 +140,20 @@ def guardar_presupuesto(request):
                 categoria = Categoria.objects.get(id=item['categoria_id'])
                 concepto = Conceptos.objects.get(id=item['concepto_id'])
 
+                # Crear el detalle del presupuesto
                 DetallePresupuesto.objects.create(
                     presupuesto=presupuesto,
-                    concepto=concepto.nombre,
-                    valor=item['valor'],
-                    responsable=responsable,  # ✅ también corregido aquí
-                    categoria=categoria,
-                    observaciones=item.get('observaciones', '')
+                    concepto=concepto,  # ✅ Asignar el objeto Conceptos
+                    monto=item['valor'],
+                    responsable=responsable,
+                    Categoria=categoria,  # ✅ Usar 'Categoria' (con C mayúscula) para coincidir con el modelo
+                    observaciones=item.get('observaciones', ''),
+                    fecha_de_pago=item.get('fecha_pago', date.today())  # ✅ Usar date.today() y el nombre de campo correcto
                 )
+            except (Responsables.DoesNotExist, Categoria.DoesNotExist, Conceptos.DoesNotExist) as e:
+                print(f"Error al obtener objeto relacionado: {e}")
+                # Considera agregar un manejo de error más robusto aquí, como no crear el DetallePresupuesto
+                # para este ítem o informar al usuario.
             except Exception as e:
                 print("Error al guardar item del presupuesto:", e)
 
@@ -139,10 +164,9 @@ def guardar_presupuesto(request):
         request.session.modified = True
 
         return redirect('pagina_inicial')
-    
+
     # En caso de que NO sea POST
     return redirect('pagina_inicial')
-
 
 
 def agregar_al_carrito(request):
@@ -151,31 +175,43 @@ def agregar_al_carrito(request):
         valor = float(request.POST.get('valor', 0))
         responsable_id = request.POST.get('responsable_id')
         observaciones = request.POST.get('observaciones')
+        fecha_pago = request.POST.get('fecha_pago')  # Obtener la fecha de pago
 
-        concepto = Conceptos.objects.get(id=concepto_id)
-        responsable = Responsables.objects.get(id=responsable_id)
-        categoria = concepto.categoria
+        try:
+            concepto = Conceptos.objects.get(id=concepto_id)
+            responsable = Responsables.objects.get(id=responsable_id)
+            categoria = concepto.categoria
 
-        item = {
-            'concepto_id': concepto.id,
-            'nombre_concepto': concepto.nombre,
-            'categoria_id': categoria.id,
-            'categoria_nombre': categoria.nombre,
-            'responsable_id': responsable.id,
-            'responsable_nombre': responsable.nombre,
-            'valor': valor,
-            'observaciones': observaciones
-        }
+            item = {
+                'concepto_id': concepto.id,
+                'nombre_concepto': concepto.nombre,
+                'categoria_id': categoria.id,
+                'categoria_nombre': categoria.nombre,
+                'responsable_id': responsable.id,
+                'responsable_nombre': responsable.nombre,
+                'valor': valor,
+                'observaciones': observaciones,
+                'fecha_pago': fecha_pago  # Guardar la fecha de pago en la sesión
+            }
 
-        # Guardar en sesión
-        carrito = request.session.get('items_presupuesto', [])
-        carrito.append(item)
-        request.session['items_presupuesto'] = carrito
-        request.session.modified = True
+            # Guardar en sesión
+            carrito = request.session.get('items_presupuesto', [])
+            carrito.append(item)
+            request.session['items_presupuesto'] = carrito
+            request.session.modified = True
 
-        return JsonResponse({'status': 'ok'})
+            return JsonResponse({'status': 'ok'})
+
+        except Conceptos.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Concepto no encontrado'}, status=400)
+        except Responsables.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Responsable no encontrado'}, status=400)
+        except Exception as e:
+            print("Error al agregar al carrito:", e)
+            return JsonResponse({'status': 'error', 'message': 'Error al agregar al carrito'}, status=500)
 
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
 
 
 @login_required
@@ -365,8 +401,8 @@ def consultar_presupuesto(request):
         filtros_saldo = {'presupuesto_id': presupuesto_id}
 
         if categoria_id:
-            filtros_detalle['categoria_id'] = categoria_id
-            filtros_gasto['categoria_id'] = categoria_id
+            filtros_detalle['Categoria_id'] = categoria_id  # ✅ Ajuste: 'Categoria_id'
+            filtros_gasto['categoria_id'] = categoria_id    # ✅ Ajuste: 'categoria_id'
         if responsable_id:
             filtros_detalle['responsable_id'] = responsable_id
             filtros_gasto['responsable_id'] = responsable_id
@@ -375,7 +411,7 @@ def consultar_presupuesto(request):
 
         # Aggregate presupuesto details for the table
         detalles_agregados_tabla = DetallePresupuesto.objects.filter(**filtros_detalle).values(
-            'categoria__nombre',
+            'Categoria__nombre',  # ✅ Ajuste: 'Categoria__nombre'
             'responsable__nombre'
         ).annotate(
             valor=Sum('monto')
@@ -383,7 +419,7 @@ def consultar_presupuesto(request):
 
         # Aggregate gastos for the table
         gastos_agregados_tabla = Gasto.objects.filter(**filtros_gasto).values(
-            'categoria__nombre',
+            'categoria__nombre',    # ✅ Ajuste: 'categoria__nombre'
             'responsable__nombre'
         ).annotate(
             total_gasto=Sum('valor')
@@ -391,7 +427,7 @@ def consultar_presupuesto(request):
         gastos_dict_tabla = {(g['categoria__nombre'], g['responsable__nombre']): g['total_gasto'] or 0 for g in gastos_agregados_tabla}
 
         for detalle in detalles_agregados_tabla:
-            categoria_nombre = detalle['categoria__nombre']
+            categoria_nombre = detalle['Categoria__nombre']  # ✅ Ajuste: 'Categoria__nombre'
             responsable_nombre = detalle['responsable__nombre']
             valor_presupuestado = detalle['valor'] or 0
             valor_gasto = gastos_dict_tabla.get((categoria_nombre, responsable_nombre), 0)
@@ -414,22 +450,22 @@ def consultar_presupuesto(request):
         # Data for the Distribución del Presupuesto por Categoría graph
         distribucion_data = DetallePresupuesto.objects.filter(presupuesto_id=presupuesto_id)
         if categoria_id:
-            distribucion_data = distribucion_data.filter(categoria_id=categoria_id)
+            distribucion_data = distribucion_data.filter(Categoria_id=categoria_id)  # ✅ Ajuste: 'Categoria_id'
         if responsable_id:
             distribucion_data = distribucion_data.filter(responsable_id=responsable_id)
 
-        distribucion_agregada = distribucion_data.values('categoria__nombre').annotate(
+        distribucion_agregada = distribucion_data.values('Categoria__nombre').annotate(  # ✅ Ajuste: 'Categoria__nombre'
             total_presupuestado=Sum('monto')
-        ).order_by('categoria__nombre')
+        ).order_by('Categoria__nombre')  # ✅ Ajuste: 'Categoria__nombre'
 
-        grafico_categorias = [item['categoria__nombre'] for item in distribucion_agregada]
+        grafico_categorias = [item['Categoria__nombre'] for item in distribucion_agregada]  # ✅ Ajuste: 'Categoria__nombre'
         grafico_valores = [item['total_presupuestado'] or 0 for item in distribucion_agregada]
 
         print("Categorías para el gráfico:", grafico_categorias)
         print("Valores para el gráfico:", grafico_valores)
 
         # Get detailed gastos
-        gastos_detalle = Gasto.objects.filter(**filtros_gasto).select_related('categoria', 'concepto', 'responsable')
+        gastos_detalle = Gasto.objects.filter(**filtros_gasto).select_related('categoria', 'concepto', 'responsable')  # ✅ Ajuste: 'categoria'
 
         # Saldos por responsable
         ingresos_por_responsable = Ingresos.objects.filter(**filtros_ingreso).values('responsable__nombre').annotate(
@@ -530,10 +566,11 @@ def ingresar_item_presupuesto(request):
     if request.method == 'POST' and presupuesto_seleccionado:
         concepto_id = request.POST.get('concepto_id')
         responsable_id = request.POST.get('responsable_id')
-        valor = request.POST.get('valor')
+        monto = request.POST.get('monto')  # Cambiado a 'monto'
         observaciones = request.POST.get('observaciones')
+        fecha_pago = request.POST.get('date')  # Obtener la fecha de pago
 
-        if concepto_id and responsable_id and valor:
+        if concepto_id and responsable_id and monto and fecha_pago:
             try:
                 concepto = Conceptos.objects.get(id=concepto_id)
                 responsable = Responsables.objects.get(id=responsable_id)
@@ -541,13 +578,18 @@ def ingresar_item_presupuesto(request):
                 # Obtener la categoría del concepto
                 categoria = concepto.categoria
 
+                # Convertir la fecha de pago de string a tipo de dato Date
+                from datetime import datetime
+                fecha_pago = datetime.strptime(fecha_pago, '%Y-%m-%d').date()
+
                 DetallePresupuesto.objects.create(
                     presupuesto=presupuesto_seleccionado,
                     concepto=concepto,
                     categoria=categoria,
                     responsable=responsable,
-                    valor=valor,
-                    observaciones=observaciones
+                    monto=monto,  # Cambiado a 'monto'
+                    observaciones=observaciones,
+                    fecha_pago=fecha_pago  # Guardar la fecha de pago
                 )
                 messages.success(request, "Ítem agregado al presupuesto exitosamente.")
                 return redirect(request.path_info + f'?presupuesto_id={presupuesto_seleccionado.id}')  # Recargar con el presupuesto seleccionado
@@ -556,7 +598,7 @@ def ingresar_item_presupuesto(request):
             except Responsables.DoesNotExist:
                 messages.error(request, "El responsable seleccionado no existe.")
             except ValueError:
-                messages.error(request, "El valor debe ser un número válido.")
+                messages.error(request, "El monto debe ser un número válido.")
             except Exception as e:
                 messages.error(request, f"Ocurrió un problema al guardar el ítem: {str(e)}")
         else:
@@ -571,6 +613,8 @@ def ingresar_item_presupuesto(request):
     }
 
     return render(request, 'Registrar_Presupuesto/ingresar_Presupuesto.html', context)
+
+
 
 
 @login_required
@@ -650,7 +694,7 @@ def guardar_saldos(request):
 
 def guardar_metas(request):
     try:
-        categoria = Categoria.objects.get(id=11)
+        categoria = Categoria.objects.get(id=6)
     except Categoria.DoesNotExist:
         messages.error(request, "La categoría no existe.")
         return redirect('definir_metas')
@@ -747,3 +791,175 @@ def logout_view(request):
 
 def ver_detalle_presupuesto (request):
     return render(request, 'Registrar_Presupuesto/total_presupuesto.html')
+
+import datetime
+import calendar
+
+class DateEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.date):
+            return obj.isoformat()  # Convierte el objeto date en una cadena ISO
+        return super().default(obj)
+
+def obtener_eventos_presupuesto(request, presupuesto_id):
+    try:
+        presupuesto = Presupuesto.objects.get(id=presupuesto_id)
+    except Presupuesto.DoesNotExist:
+        return JsonResponse([], safe=False)
+
+    # Obtener fecha actual
+    hoy = datetime.datetime.now()
+
+    # Obtener primer día y último día del mes actual sin hora (solo fecha)
+    primer_dia_mes = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    ultimo_dia_mes = hoy.replace(day=calendar.monthrange(hoy.year, hoy.month)[1], hour=23, minute=59, second=59, microsecond=999999)
+
+    # Filtrar los detalles de presupuesto dentro de las fechas del mes actual
+    detalles = DetallePresupuesto.objects.filter(
+        presupuesto=presupuesto,
+        fecha_pago__range=(primer_dia_mes, ultimo_dia_mes)
+    )
+    
+    eventos = []
+    for detalle in detalles:
+        eventos.append({
+            'title': detalle.nombre_concepto,
+            'start': detalle.fecha_pago.isoformat(),  # Convertir la fecha a formato ISO
+            'allDay': True,
+        })
+
+    return JsonResponse(eventos, safe=False)
+
+def crear_presupuesto_view(request):
+    try:
+        presupuesto_actual = Presupuesto.objects.get(pk=1)  # Cambiar la lógica para obtener el presupuesto real
+    except Presupuesto.DoesNotExist:
+        presupuesto_actual = None  # Manejo adecuado si no existe el presupuesto
+
+    context = {'presupuesto': presupuesto_actual}
+    return render(request, 'Pagina_Principal.html', context)
+
+from collections import defaultdict
+from datetime import timedelta
+from django.shortcuts import render
+from .models import DetallePresupuesto
+from datetime import datetime
+
+
+def agrupar_por_semanas(presupuesto_items):
+    semanas = defaultdict(lambda: {"items": [], "total": 0})
+    for item in presupuesto_items:
+        fecha_pago = item.fecha_de_pago  # ✅ Corrección: usar fecha_de_pago
+        if not fecha_pago:
+            continue
+
+        valor = item.monto or 0
+        lunes_semana = fecha_pago - timedelta(days=fecha_pago.weekday())
+        domingo_semana = lunes_semana + timedelta(days=6)
+        semana_str = f"{lunes_semana.strftime('%d/%m/%Y')} - {domingo_semana.strftime('%d/%m/%Y')}"
+
+        semanas[semana_str]["items"].append({
+            "id": item.id,
+            "presupuesto_id": item.presupuesto.id if item.presupuesto else '',
+            "presupuesto": item.presupuesto.nombre if item.presupuesto else '',
+            "categoria_id": item.Categoria.id if item.Categoria else '',
+            "categoria": item.Categoria.nombre if item.Categoria else '',
+            "concepto_id": getattr(item, 'concepto_id', ''),
+            "concepto": getattr(item, 'concepto', ''),
+            "responsable_id": item.responsable.id if item.responsable else '',
+            "responsable": item.responsable.nombre if item.responsable else '',
+            "monto": valor,
+            "fecha_pago": item.fecha_de_pago,  # ✅ Corrección: usar fecha_de_pago
+            "ejecutado": getattr(item, 'ejecutado', False),
+        })
+        semanas[semana_str]["total"] += valor
+
+    semanas_ordenadas = sorted(semanas.items(), key=lambda x: datetime.strptime(x[0].split(' - ')[0], '%d/%m/%Y'))
+    semanas_dict = dict(semanas_ordenadas)
+
+    return semanas_dict
+
+from django.http import JsonResponse
+from .models import DetallePresupuesto
+
+def obtener_detalle_presupuesto(request, detalle_id):
+    try:
+        detalle = DetallePresupuesto.objects.get(id=detalle_id)
+        data = {
+            'presupuesto_id': detalle.presupuesto.id,
+            'categoria_id': detalle.categoria.id,
+            'concepto_id': detalle.id,
+            'responsable_id': detalle.responsable.id,
+            'monto': float(detalle.monto),
+            'fecha_pago': detalle.fecha_pago.strftime('%Y-%m-%d'),  # Formatear la fecha si es necesario
+        }
+        return JsonResponse({'success': True, 'data': data})
+    except DetallePresupuesto.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Detalle no encontrado'}, status=404)
+
+from django.core.exceptions import ObjectDoesNotExist
+
+def guardar_gasto(request):
+    if request.method == 'POST':
+        # Obtenemos los datos del formulario
+        presupuesto_id = request.POST.get('presupuestoId')
+        categoria_id = request.POST.get('categoriaId')
+        concepto_id = request.POST.get('conceptoId')
+        responsable_id = request.POST.get('Responsable')  # ID del responsable
+        valor = request.POST.get('valor')
+        banco_id = request.POST.get('banco_id')
+        observaciones = request.POST.get('observaciones')
+        fecha = request.POST.get('fecha')
+
+        # Imprimir los datos recibidos
+        print("Datos recibidos:")
+        print(f"Presupuesto ID: {presupuesto_id}")
+        print(f"Categoría ID: {categoria_id}")
+        print(f"Concepto ID: {concepto_id}")
+        print(f"Responsable ID: {responsable_id}")
+        print(f"Valor: {valor}")
+        print(f"Banco ID: {banco_id}")
+        print(f"Observaciones: {observaciones}")
+        print(f"Fecha: {fecha}")
+
+        # Buscar la instancia del responsable
+        responsable = Responsables.objects.get(id=responsable_id)
+        # Buscar las otras instancias necesarias
+        categoria = Categoria.objects.get(id=categoria_id)
+        
+        # Usamos try-except para manejar si el concepto no existe
+        try:
+            concepto = Conceptos.objects.get(id=concepto_id)
+        except ObjectDoesNotExist:
+            messages.error(request, "El concepto seleccionado no existe.")
+            return redirect('pagina_inicial')
+        
+        banco = Bancos.objects.get(id=banco_id)
+        presupuesto = Presupuesto.objects.get(id=presupuesto_id)
+
+        # Verificamos si los datos recibidos no son vacíos antes de guardarlos
+        if presupuesto_id and categoria_id and concepto_id and responsable and valor and banco_id and fecha:
+            # Aquí guardamos el gasto en la base de datos
+            gasto = Gasto(
+                presupuesto=presupuesto,
+                categoria=categoria,
+                concepto=concepto,
+                responsable=responsable,
+                valor=valor,
+                banco=banco,
+                observaciones=observaciones,
+                fecha=fecha,
+            )
+            gasto.save()
+
+            # Agregar un mensaje de éxito
+            messages.success(request, "El gasto ha sido guardado correctamente.")
+
+            # Redirigir a la página principal (ajusta la URL a tu vista principal)
+            return redirect('pagina_inicial')  # Asegúrate de tener definida esta vista
+        else:
+            # Si falta algún dato, mostrar un mensaje de error
+            messages.error(request, "Faltan datos para guardar el gasto.")
+
+    return render(request, 'Registrar_Presupuesto/Pagina_Inicial.html')
+

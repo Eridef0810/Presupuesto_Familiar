@@ -16,11 +16,12 @@ class Presupuesto(models.Model):
         return f"{self.nombre} - {self.mes} - {self.fecha_inicio} - {self.fecha_fin} - {self.total_presupuesto}"
     
 class DetallePresupuesto(models.Model):
-    presupuesto = models.ForeignKey('Presupuesto', on_delete=models.CASCADE, related_name='detalles')
-    concepto = models.CharField(max_length=100)
-    monto = models.DecimalField(max_digits=10, decimal_places=2)
-    responsable = models.ForeignKey('Responsables', on_delete=models.CASCADE, related_name='detalles', default=1)
-    categoria = models.ForeignKey('Categoria', on_delete=models.CASCADE, related_name='detalles', default=1)
+    presupuesto = models.ForeignKey(Presupuesto, on_delete=models.CASCADE, related_name='detalles')
+    concepto = models.ForeignKey('Conceptos', on_delete=models.CASCADE, related_name='detalles')
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    fecha_de_pago = models.DateField(default=date.today)    
+    Categoria = models.ForeignKey('Categoria', on_delete=models.CASCADE, related_name='detalles')
+    responsable = models.ForeignKey('Responsables', on_delete=models.CASCADE, related_name='detalles')
     observaciones = models.TextField(blank=True, null=True)
 
 
@@ -29,7 +30,8 @@ class DetallePresupuesto(models.Model):
         verbose_name_plural = "Detalles de Presupuesto"
 
     def __str__(self):
-        return f"{self.presupuesto.nombre} - {self.concepto} - {self.monto}"
+        return f"{self.presupuesto.nombre} - {self.concepto.nombre} - {self.monto}"
+
 
     
 class Categoria(models.Model):

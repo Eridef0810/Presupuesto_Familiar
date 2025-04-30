@@ -102,4 +102,12 @@
 .resaltado {
         background-color: #f8d7da; /* rojo claro */
     }
-    
+
+/* Estilo para las tarjetas de presupuesto ejecutadas */
+.presupuesto-ejecutado {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    border-width: 2px;
+    font-weight: bold;
+}
+
