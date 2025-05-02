@@ -963,3 +963,127 @@ def guardar_gasto(request):
 
     return render(request, 'Registrar_Presupuesto/Pagina_Inicial.html')
 
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+
+from .models import Presupuesto, DetallePresupuesto, Gasto
+
+def exportar_presupuesto(request):
+    presupuesto_id = request.GET.get('presupuesto_id')
+    categoria_id = request.GET.get('categoria')
+    responsable_id = request.GET.get('responsable')
+
+    presupuesto_seleccionado = None
+    if presupuesto_id:
+        presupuesto_seleccionado = get_object_or_404(Presupuesto, id=presupuesto_id)
+
+    items_presupuesto = DetallePresupuesto.objects.all()
+    gastos_detalle = Gasto.objects.all()
+
+    if presupuesto_seleccionado:
+        items_presupuesto = items_presupuesto.filter(presupuesto=presupuesto_seleccionado)
+        gastos_detalle = gastos_detalle.filter(presupuesto=presupuesto_seleccionado)
+
+    if categoria_id:
+        items_presupuesto = items_presupuesto.filter(Categoria_id=categoria_id)
+        gastos_detalle = gastos_detalle.filter(categoria_id=categoria_id)
+
+    if responsable_id:
+        items_presupuesto = items_presupuesto.filter(responsable_id=responsable_id)
+        gastos_detalle = gastos_detalle.filter(responsable_id=responsable_id)
+
+    total_presupuesto = sum(item.monto for item in items_presupuesto)
+    total_gastos = sum(gasto.valor for gasto in gastos_detalle)
+    porcentaje_cumplimiento = (total_gastos / total_presupuesto) * 100 if total_presupuesto else 0
+    sobreejecutado = porcentaje_cumplimiento > 100
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="informe_presupuesto.pdf"'
+    doc = SimpleDocTemplate(response, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph("Informe de Presupuesto", styles['h1']))
+    story.append(Spacer(1, 12))
+
+    if presupuesto_seleccionado:
+        story.append(Paragraph(f"Presupuesto: {presupuesto_seleccionado.nombre}", styles['h2']))
+        story.append(Spacer(1, 6))
+
+    story.append(Paragraph("Resumen", styles['h2']))
+    resumen_data = [
+        ["Total Presupuesto:", f"${total_presupuesto:,.0f}"],
+        ["Total Gastos:", f"${total_gastos:,.0f}"],
+        ["Cumplimiento:", f"{porcentaje_cumplimiento:.2f}%"],
+    ]
+    resumen_table = Table(resumen_data)
+    resumen_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('TEXTALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    story.append(resumen_table)
+    story.append(Spacer(1, 12))
+    if sobreejecutado:
+        story.append(Paragraph("<font color='red'><b>¡Presupuesto sobreejecutado!</b></font>", styles['Normal']))
+        story.append(Spacer(1, 12))
+
+    story.append(Paragraph("Resumen del Presupuesto por Categoría y Responsable", styles['h2']))
+    table_data_presupuesto = [["Categoría", "Responsable", "Presupuesto"]]
+    for item in items_presupuesto:
+        table_data_presupuesto.append([
+            item.Categoria.nombre,
+            item.responsable.nombre,
+            f"${item.monto:,.0f}"
+        ])
+    table_presupuesto = Table(table_data_presupuesto)
+    table_presupuesto.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('TEXTALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    story.append(table_presupuesto)
+    story.append(Spacer(1, 12))
+
+    if gastos_detalle.exists():
+        story.append(Paragraph("Detalle de Transacciones", styles['h2']))
+        table_data_gastos = [["Fecha", "Concepto", "Responsable", "Valor", "Observaciones"]]
+        for gasto in gastos_detalle:
+            table_data_gastos.append([
+                gasto.fecha.strftime('%Y-%m-%d'),
+                gasto.concepto.nombre,
+                gasto.responsable.nombre,
+                f"${gasto.valor:,.0f}",
+                gasto.observaciones or ""
+            ])
+        table_gastos = Table(table_data_gastos)
+        table_gastos.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('TEXTALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(table_gastos)
+        story.append(Spacer(1, 12))
+    else:
+        story.append(Paragraph("No hay detalles de transacciones para la selección actual.", styles['Italic']))
+        story.append(Spacer(1, 12))
+
+    doc.build(story)
+    return response
+
+
+
+

@@ -87,9 +87,11 @@ WSGI_APPLICATION = 'Presupuesto_Familiar.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+from decouple import config  # Make sure python-decouple is installed
+
 DATABASES = {
     'default': {
-        'ENGINE': 'mssql',
+        'ENGINE': 'mssql',  # ✅ Modern, supported engine
         'NAME': config('DB_DATABASE'),
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
@@ -97,11 +99,14 @@ DATABASES = {
         'PORT': config('DB_PORT'),
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'encrypt': config('DB_ENCRYPT', cast=bool),
-            'trustServerCertificate': config('DB_TRUST_CERTIFICATE', cast=bool),
+            'encrypt': config('DB_ENCRYPT', default=False, cast=bool),
+            'trustServerCertificate': config('DB_TRUST_CERTIFICATE', default=True, cast=bool),
         },
     }
 }
+
+
+
 
 
 

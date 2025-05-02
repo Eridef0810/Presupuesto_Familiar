@@ -51,6 +51,8 @@ urlpatterns = [
     path('detalle_presupuesto/', views.ver_detalle_presupuesto, name='detalle_presupuesto'),
     path('obtener-eventos/<int:presupuesto_id>/', views.obtener_eventos_presupuesto, name='obtener_eventos'),
     path('guardar_gasto/', views.guardar_gasto, name='guardar_gasto'),
+    path('exportar-presupuesto/', views.exportar_presupuesto, name='exportar_presupuesto'),
+
 
 
     # API AJAX

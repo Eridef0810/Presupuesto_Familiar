@@ -43,6 +43,16 @@
         </div>
       </form>
 
+      
+     <!-- Botón para exportar presupuesto -->
+<hr>
+<form method="post" action="{% url 'exportar_presupuesto' %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-sm btn-outline-success w-100">
+    <i class="fas fa-file-export"></i> Exportar Presupuesto
+  </button>
+</form>
+
       {% if ingresos_resumen %}
         <div class="mt-3">
           <h5>💼 Ingresos y Saldos por Responsable</h5>
