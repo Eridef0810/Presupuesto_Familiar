@@ -89,14 +89,16 @@ WSGI_APPLICATION = 'Presupuesto_Familiar.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 import os
-import dj_database_url  # Asegúrate de importar esta librería
+import dj_database_url  # Asegúrate de tener esta librería en requirements.txt
 
-# Usar la URL de base de datos proporcionada por Render
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'postgres://usuario:clave@servidor:puerto/nombre_basedatos')
+        default=os.getenv('DATABASE_URL'),  # Render la define automáticamente
+        conn_max_age=600,  # Mantiene conexiones abiertas para mejorar rendimiento
+        ssl_require=True   # Fuerza SSL en producción (buena práctica con PostgreSQL en la nube)
     )
 }
+
 
 
 
