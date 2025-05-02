@@ -25,8 +25,7 @@ SECRET_KEY = 'django-insecure-4m(11^%op)1vdp2785_s^2k-)-++)m)qsev-e2l)6vqyh5@sq3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.onrender.com']
-
+ALLOWED_HOSTS = ['tuusuario.pythonanywhere.com']
 
 
 # Application definition
@@ -89,14 +88,21 @@ WSGI_APPLICATION = 'Presupuesto_Familiar.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 import os
-import dj_database_url  # Asegúrate de tener esta librería en requirements.txt
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),  # Render la define automáticamente
-        conn_max_age=600,  # Mantiene conexiones abiertas para mejorar rendimiento
-        ssl_require=True   # Fuerza SSL en producción (buena práctica con PostgreSQL en la nube)
-    )
+    'default': {
+        'ENGINE': 'mssql',  # ✅ Modern, supported engine
+        'NAME': config('DB_DATABASE'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_SERVER'),
+        'PORT': config('DB_PORT'),
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',
+            'encrypt': config('DB_ENCRYPT', default=False, cast=bool),
+            'trustServerCertificate': config('DB_TRUST_CERTIFICATE', default=True, cast=bool),
+        },
+    }
 }
 
 
